@@ -1,12 +1,17 @@
 package com.example.nothingbuttext.controller;
 
-import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.example.nothingbuttext.service.YandexGptActions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/convert")
 public class VideoToTextController {
+    @Autowired
+    private YandexGptActions yandexGptActions;
 
+    /*@PostMapping("/video-to-text")
+    public ResponseEntity<?> sendDataToYandexGpt(@RequestBody String ytUrl){
+
+    }*/
 }
