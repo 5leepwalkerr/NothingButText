@@ -6,39 +6,44 @@ import com.example.nothingbuttext.dto.YandexGpt.YandexGptReq;
 import com.example.nothingbuttext.repo.MajorTextPartRepository;
 import com.example.nothingbuttext.service.YandexGptActions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.BodyInserter;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Service
 public class YandexGptActionsImpl implements YandexGptActions {
     private static final String YANDEX_GPT_TEXT_BASE_REQ = "Выдели главные моменты из этого видео и представь их текстом: ";
-    private static final String YANDEX_GPT_BASE_URL_ASYNC = "https://llm.api.cloud.yandex.net/foundationModels/v1/completionAsync";
+    @Value("${yandex.baseUrl}")
+    private String baseUrl;
     @Autowired
     private MajorTextPartRepository repository;
-    @Autowired
-    private WebClient webClient;
+    private final WebClient webClient;
 
-    @Override
-    public YandexGptReq createYandexGptReq(String YTUri) {
-       return YandexGptReq
-               .builder()
-               .model("general")
-               .generationOptions(
-                       YandexGptGenerationOptions
-                               .builder()
-                               .partialResults(false)
-                               .temperature(1.0)
-                               .maxTokens(3000)
-                               .build()
-               )
-               .messages(new YandexGptMessages("system",YTUri))
-               .instructionText(YANDEX_GPT_TEXT_BASE_REQ)
-               .build();
+    // Inject WebClient in the constructor
+    public YandexGptActionsImpl(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder.baseUrl(baseUrl).build();
     }
 
     @Override
+        public YandexGptReq createYandexGptReq(String YTUri) {
+            YandexGptGenerationOptions generationOptions = new YandexGptGenerationOptions(false, 1.0, 3000);
+
+            YandexGptMessages messages = new YandexGptMessages("system", YTUri);
+
+            return new YandexGptReq("general", generationOptions, messages, YANDEX_GPT_TEXT_BASE_REQ);
+        }
+
+    @Override
     public Mono<String> sendReqToYandexGpt(YandexGptReq req) {
-        webClient = WebClient.builder().baseUrl(YANDEX_GPT_BASE_URL_ASYNC).build();
+        String endpointPath = "/foundationModels/v1/completionAsync";
+        return webClient
+                .post()
+                .uri(endpointPath)
+                .body(BodyInserters.fromValue(req))
+                .retrieve()
+                .bodyToMono(String.class);
     }
 }
